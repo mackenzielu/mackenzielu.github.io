@@ -1,0 +1,240 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="https://at.alicdn.com/t/font_849144_hp65zsytovp.css">
+  <title>❄雪❄</title>
+  <style>
+    html,
+   
+  </style>
+</head>
+
+<body>
+  <div class="operation">
+    <input id="range" class="end" type="range" min="10" max="200">
+    <button id="showSun" class="end">
+      <i class="iconfont icon-sun"></i>
+    </button>
+    <button id="addSideNum" class="noend">
+      <i class="iconfont icon-snow_2"></i>
+    </button>
+    <button id="reduceSideNum" class="end">
+      <i class="iconfont icon-snow_1"></i>
+    </button>
+    <button id="addSnowSize" class="noend">
+      <i class="iconfont icon-hands_zoom"></i>
+    </button>
+    <button id="reduceSnowSize" class="end">
+      <i class="iconfont icon-hands_zoom_"></i>
+    </button>
+  </div>
+  <img id="sun" src="./sun.png" alt="..." style="display: none;">
+  <canvas id="canvas"></canvas>
+  <script>
+    
+    initDom();
+    window.addEventListener('resize', () => {
+      initCanvas();
+      drawSnows();
+    });
+    window.onload = function () {
+      initEvents();
+      initCanvas();
+      drawSnows();
+      move();
+    }
+
+    const Snow = function () { };
+    Snow.prototype = {
+      init(x = random(0, _WIDTH), y = 0) {
+        this.x = x;
+        this.y = y;
+        this.r = random(...snowSize);
+        this._x = random(0.2, 2);
+        this._y = random(...speed);
+        this.rotateSpeed = this._y / 2;
+        this.angle = 0;
+      },
+      draw() {
+        // ctx.drawImage(this.snowCanvas, this.x, this.y)
+        ctx.save()
+        ctx.translate(this.x + this.snowCanvas.width / 2, this.y + this.snowCanvas.height / 2)
+        ctx.rotate(this.angle % 360 * PI / 180)
+        ctx.drawImage(this.snowCanvas, -this.snowCanvas.width / 2, -this.snowCanvas.height / 2);
+        ctx.restore()
+        this.update();
+      },
+      update() {
+        if (this.y < _HEIGHT - this.r) {
+          this.y += this._y;
+          if (this.x < _WIDTH - this.r) {
+            this.x += this._x;
+          } else {
+            this.init(0, this.y);
+          }
+        } else {
+          this.init();
+        }
+        this.angle += this.rotateSpeed;
+      }
+    };
+
+    function initDom() {
+      const isMobile = /Mobile/gi.test(navigator.userAgent);
+      let img = 'url(./p.jpg)';
+      if (isMobile) {
+        img = 'url(./m.jpg)';
+        snowSize = [2, 8]
+        threshold = 5;
+      }
+      document.body.style.backgroundImage = img;
+    }
+
+    function initCanvas() {
+      _WIDTH = document.documentElement.clientWidth;
+      _HEIGHT = document.documentElement.clientHeight;
+      canvas = document.getElementById('canvas');
+      canvas.setAttribute('width', _WIDTH);
+      canvas.setAttribute('height', _HEIGHT);
+      ctx = canvas.getContext('2d');
+    }
+
+    function drawSnows() {
+      snows = snows.slice(0, snowCount);
+      timeouts = [];
+      for (let i = snows.length; i < snowCount; i += 1) {
+        let timeout = setTimeout(function () {
+          const snow = new Snow();
+          snow.init();
+          snow.snowCanvas = drawCanvas(snow.r);
+          snows.push(snow);
+        }, space * i);
+        timeouts.push(timeout);
+      }
+    }
+
+    function drawCanvas(size) {
+      let coord = [[2 * size, 2 * size]];
+      const canvasSnow = document.createElement('canvas');
+      canvasSnow.setAttribute('width', coord[0][0] + size * 2);
+      canvasSnow.setAttribute('height', coord[0][1] + size * 2);
+      const ctxSnow = canvasSnow.getContext('2d');
+
+      ctxSnow.save();
+      ctxSnow.strokeStyle = '#FFFFFF';
+      ctxSnow.lineWidth = 2;
+      let coords = drawSnow(ctxSnow, coord, size);
+      ctxSnow.lineWidth = 1;
+      coords = drawSnow(ctxSnow, coords, size / 2.5);
+      size > threshold && drawSnow(ctxSnow, coords, size / 6);
+      ctxSnow.restore();
+      return canvasSnow;
+    }
+
+    function drawSnow(ctxSnow, coord, size) {
+      const coords = [];
+      for (let i = 0, length = coord.length; i < length; i += 1) {
+        for (let j = 0; j < sideNum; j += 1) {
+          const { x2, y2 } = drawSide(ctxSnow, coord[i][0], coord[i][1], size, 2 * PI * (j / sideNum));
+          coords.push([x2, y2]);
+        }
+      }
+      return coords;
+    }
+
+    function drawSide(ctxSnow, x, y, size, radian) {
+      const x2 = size * cos(radian) + x;
+      const y2 = size * sin(radian) + y;
+      drawLine(ctxSnow, x, y, x2, y2);
+      return { x2, y2 };
+    }
+
+    function drawLine(ctxSnow, x1, y1, x2, y2) {
+      ctxSnow.beginPath();
+      ctxSnow.lineTo(x1, y1);
+      ctxSnow.lineTo(x2, y2);
+      ctxSnow.stroke();
+    }
+
+    function move() {
+      ctx.clearRect(0, 0, _WIDTH, _HEIGHT);
+      let length = snows.length;
+      for (let i = 0; i < length; i++) {
+        snows[i].draw();
+      }
+      requestAnimationFrame(move);
+    }
+
+    function initEvents() {
+      const range = document.getElementById('range');
+      range.onchange = function () {
+        timeouts.forEach(t => clearTimeout(t));
+        snowCount = this.value;
+        space = ~~(_HEIGHT / ((speed[0] + speed[1]) / 2) * 16.6 / snowCount)
+        drawSnows();
+      }
+
+      const showSun = document.getElementById('showSun');
+      let bool = true;
+      showSun.onclick = function () {
+        const sun = document.getElementById('sun');
+        if (bool) {
+          sun.style.display = "inline-block";
+        } else {
+          sun.style.display = "none";
+        }
+        bool = !bool;
+      }
+
+      const addSideNum = document.getElementById('addSideNum');
+      addSideNum.onclick = function () {
+        timeouts.forEach(t => clearTimeout(t));
+        sideNum += 1;
+        snows.forEach(snow => snow.snowCanvas = drawCanvas(snow.r));
+        drawSnows();
+      }
+
+      const reduceSideNum = document.getElementById('reduceSideNum');
+      reduceSideNum.onclick = function () {
+        timeouts.forEach(t => clearTimeout(t));
+        sideNum -= 1;
+        snows.forEach(snow => snow.snowCanvas = drawCanvas(snow.r));
+        drawSnows();
+      }
+
+      const addSnowSize = document.getElementById('addSnowSize');
+      addSnowSize.onclick = function () {
+        timeouts.forEach(t => clearTimeout(t));
+        snowSize = snowSize.map(e => e + 1);
+        snows.forEach(snow => {
+          snow.r += 1;
+          snow.snowCanvas = drawCanvas(snow.r)
+        });
+        drawSnows();
+      }
+
+      const reduceSnowSize = document.getElementById('reduceSnowSize');
+      reduceSnowSize.onclick = function () {
+        timeouts.forEach(t => clearTimeout(t));
+        snowSize = snowSize.map(e => e - 1);
+        snows.forEach(snow => {
+          snow.r -= 1;
+          snow.snowCanvas = drawCanvas(snow.r)
+        });
+        drawSnows();
+      }
+    }
+
+    function random(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+  </script>
+</body>
+
+</html>
