@@ -5,7 +5,7 @@ let grid = [];
 let particleImage;
 let ctx;
 function preload() {
-  img = loadImage('https://raw.githubusercontent.com/mackenzielu/mackenzielu.github.io/main/snow/sun.png');
+  img = loadImage('https://raw.githubusercontent.com/mackenzielu/mackenzielu.github.io/main/mother/mama.png');
 }
 
 class Particle {
